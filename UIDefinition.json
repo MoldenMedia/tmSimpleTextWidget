@@ -1,0 +1,56 @@
+
+{
+	"model": {
+		"fields": [{
+            "id": "theTitle",
+            "type": "text",
+            "title": "Title",
+            "defaultValue": "Enter title into this line..."
+		},{
+            "id": "theSubtitle",
+            "type": "text",
+            "title": "Subtitle",
+            "defaultValue": "Enter subtitle into this line..."
+		}, {
+			"id": "thePauseBetweenItems",
+			"type": "number",
+			"title": "Pause Between",
+			"defaultValue": "7",
+			"min": 0.1,
+			"max": 30.0,
+			"step": 0.1
+		}, {
+			"id": "theUpdateStyle",
+			"type": "selection",
+			"title": "Update Style",
+			"defaultValue": "update",
+			"selections": [{
+				"id": "update",
+				"title": "Update Animation"
+			}, {
+				"id": "timeline",
+				"title": "Timeline Animation"
+			}]
+		},{
+            "id": "theComposition",
+            "type": "composition",
+            "title": "Composition",
+            "defaultValue": ""
+        }],
+        "groups" : [
+            {
+                "id" : "theWidgetUIFields",
+                "title": "Widget UI Fields",
+                "width": "double",
+                "toolTip": "toolTip for Widget UI Fields",
+                "childIds": ["theTitle", "theSubtitle"]
+			}, {
+				"id": "theSubCompTransition",
+				"title": "Subcomp and Transition",
+				"width": "double",
+				"activeId": "",
+				"childIds": ["theUpdateStyle", "thePauseBetweenItems", "theComposition"]
+			}
+        ]
+	}
+}

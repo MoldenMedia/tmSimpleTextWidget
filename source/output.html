@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+	
+	<head>
+		<style>
+			
+			html, body {
+				background: none;
+				margin: 0;
+				padding: 0;
+				height: 100%;
+			}
+
+			/* Add your custom styles here */
+
+		</style>
+	</head>
+
+	<body style="background-color:lightgrey">
+	
+	<!-- Your custom html goes here -->
+	<div id = 'divA' style = "position: absolute; left:0%; top:0%; width: 100%; height: 100%" ></div>
+	<div id = 'divB' style = "position: absolute; left:0%; top:0%; width: 100%; height: 100%" ></div>
+	<script src = "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.2/moment-with-locales.min.js" ></script>
+	<script src = "https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"  ></script>
+	<script type = "text/javascript" src = "https://www.google.com/jsapi" ></script>
+
+	<!-- Singular Widget Library -->
+	<script src="https://app.singular.live/libs/singularwidget/1.0.2/singularwidget.js"></script>
+	<script>
+		// Add this snippet
+	 	SingularWidget.init({
+		  onInit: onSingularInit,
+		  onValue: onSingularValue,
+		  onEditComp : onSingularEditComp,
+		  onButtonClicked: onSingularButtonClicked
+		});
+	
+		// Define some variables
+		var windowWidth = 0;
+		var windowHeight = 0;
+		 
+		// compositions to work with
+		var compositionID = null;
+		var compositionInstanceA = null;
+		var compositionInstanceB = null;
+		var activeComposition = null;
+
+		var theTitle = '';
+		var theSubtitle = '';
+		var newTitles = {
+			nodeTitle : '.newTitle.',
+			nodeSubtitle : '.newSubtitle.'
+		}
+		var updateStyle = null;
+		var pauseBetweenItems = -1;
+
+		// define emptyWidgetNode
+		var emptyWidgetNode = {
+			nodeTitle : '',
+			nodeSubtitle : ''
+		}
+
+		//-------------------------------------------------------------------------
+		// catch resize of window
+		window.addEventListener("resize", function() {
+			if (windowWidth != window.innerWidth || windowHeight != window.innerHeight) {
+				windowWidth = window.innerWidth;
+				windowHeight = window.innerHeight;
+				
+				if (compositionInstanceA) {
+					compositionInstanceA.resize(windowWidth, windowHeight);
+				}
+				if (compositionInstanceB) {
+					compositionInstanceB.resize(windowWidth, windowHeight);
+				}
+			}
+		});
+
+		//-------------------------------------------------------------------------
+		// Inititialize
+		function onSingularInit() {
+			console.log("onSingularInit"); 
+			// get window dimensions
+			windowWidth = window.innerWidth;
+			windowHeight = window.innerHeight;
+		}
+
+		//-------------------------------------------------------------------------
+		// Called on click of a button in the UI
+		function onSingularButtonClicked(action) {
+			console.log("onSingularButtonClicked", action); 
+
+			/**
+			 * EXAMPLE: Send messages to the editor console
+			 * Message types: info, warning and error
+			 */
+			SingularWidget.log.info({
+				title: 'My Widget',
+				description: 'Hello Singular!'
+			});
+		}
+
+		//-------------------------------------------------------------------------
+		// Called on edit the subcomposition and add WidgetNodes
+		function onSingularEditComp(fieldId) {
+			var widgetNodes = [];
+			widgetNodes.push(createWidgetNode("nodeTitle", "Title", "text", "Enter title here..."));
+			widgetNodes.push(createWidgetNode("nodeSubtitle", "Subtitle", "text", "Enter subtitle here..."));
+
+			return {
+				width: windowWidth,
+				height: windowHeight,
+				widgetNodes: widgetNodes
+			};
+		}
+
+		//-------------------------------------------------------------------------
+		// Create one WidgetNode
+		function createWidgetNode(id, title, type, defaultValue) {
+			return {
+				"id": id,
+				"type": type,
+				"title": title,
+				"defaultValue": defaultValue
+			};
+		}
+
+		//-------------------------------------------------------------------------
+		// Called on data changes in the UI
+		function onSingularValue(json) {
+			var textChanged = false;
+			var compositionChanged = false;
+
+			console.log("onSingularValue", json);
+
+			if (json.theComposition !== undefined && json.theComposition != compositionID) {
+				compositionID = json.theComposition;
+				compositionChanged = true;
+			}
+
+			if (json.theTitle !== undefined && json.theTitle != theTitle) {
+				theTitle = json.theTitle;
+				textChanged = true;
+			}
+			if (json.theSubtitle !== undefined && json.theSubtitle != theSubtitle) {
+				theSubtitle = json.theSubtitle;
+				textChanged = true;
+			}
+
+			if (json.thePauseBetweenItems !== undefined && json.thePauseBetweenItems != pauseBetweenItems) {
+				pauseBetweenItems = json.thePauseBetweenItems;
+			}
+
+			if (json.theUpdateStyle !== undefined && json.theUpdateStyle != updateStyle) {
+				updateStyle = json.theUpdateStyle;
+				compositionChanged = true;
+			}
+
+			if (textChanged == true) {
+				updateText();
+			}
+			
+			if (compositionChanged == true) {
+				rebuildCompositions();
+				updateText();
+			}
+
+		}
+
+		//-------------------------------------------------------------------------
+		// updateText
+		function updateText() {
+			newTitles = {
+				nodeTitle: theTitle, 
+				nodeSubtitle: theSubtitle
+			};
+			console.log("[updateText]: ", newTitles);
+
+			console.log("[updateText]:[updateStyle] ", updateStyle);
+			switch (updateStyle) {
+				case 'update':
+					// update texts
+					if (compositionInstanceA != null) {
+						compositionInstanceA.setWidgetNode(newTitles);
+			console.log("[updateText]:[updateStyle]: instance A ", updateStyle);
+					}
+					break;
+
+				case 'timeline':
+					// update texts
+					if (compositionInstanceA != null && compositionInstanceB != null) {
+						// animate the active element out ... if we have one
+						if (activeComposition != null) {
+							activeComposition.playTo('Out2');
+						}
+
+						// pick the next composition to work with
+						if (activeComposition == null || activeComposition == compositionInstanceB) {
+							activeComposition = compositionInstanceA;
+						} else {
+							activeComposition = compositionInstanceB;
+						}
+
+						// assign data to the active composition and trigger the in animation
+						activeComposition.setWidgetNode(newTitles);
+
+						// animate the new composition in
+						activeComposition.jumpTo('Out1');
+						activeComposition.playTo('In');
+					}			
+					break;
+			}
+		}
+
+
+		//-------------------------------------------------------------------------
+		// rebuild subcomposition
+		function rebuildCompositions() {
+			// destroy the old compositions
+			if (compositionInstanceA != null) {
+				compositionInstanceA.destroy();
+				compositionInstanceA = null;
+			}
+			if (compositionInstanceB != null) {
+				compositionInstanceB.destroy();
+				compositionInstanceB = null;
+			}
+
+			// create new composition
+			SingularWidget.instantiate(compositionID, document.getElementById('divA'), function cb(id) {
+				compositionInstanceA = id;
+				compositionInstanceA.setWidgetNode(emptyWidgetNode);
+				compositionInstanceA.jumpTo('In');
+			});
+
+			switch (updateStyle) {
+			// we only work with one composition and rely on the update animation to make things look good
+			case 'update':
+				break;
+
+			// we create two compositions and use the in / out animation to bring them on and off screen
+			case 'timeline':
+				SingularWidget.instantiate(compositionID, document.getElementById('divB'), function cb(id) {
+					compositionInstanceB = id;
+					compositionInstanceB.setWidgetNode(emptyWidgetNode);
+					compositionInstanceB.jumpTo('Out1');
+				});
+				break;
+			}
+			activeComposition = null;
+		}
+
+		//-------------------------------------------------------------------------
+
+  </script>
+</body>
+</html>
